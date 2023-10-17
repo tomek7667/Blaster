@@ -1,0 +1,3 @@
+databases/*.fa
+databases/*.fasta
+node_modules

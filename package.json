@@ -1,0 +1,14 @@
+{
+  "name": "blaster",
+  "version": "1.0.0",
+  "description": "[Database](https://ftp.ncbi.nlm.nih.gov/blast/db/FASTA/) [Pytorch installation](https://trilium.cyber-man.pl/share/QdOzl3dO26zZ)",
+  "main": "parse.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "biotech-js": "^1.0.1"
+  }
+}
