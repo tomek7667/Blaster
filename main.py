@@ -17,6 +17,7 @@ for fasta_record in fasta:
 # sort descendingly both arrays based on results array (numerical)
 
 srtd = sorted(dick.items(), key=lambda x:x[1], reverse=True)
+
 for i in srtd[:10]:
     print(i)
 

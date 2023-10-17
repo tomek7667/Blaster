@@ -1,19 +1,18 @@
-cd databases
-# wget https://ftp.ncbi.nlm.nih.gov/blast/db/FASTA/swissprot.gz
-# wget https://ftp.ncbi.nlm.nih.gov/blast/db/FASTA/pdbaa.gz
-wget https://ftp.ncbi.nlm.nih.gov/blast/db/mouse_genome.00.tar.gz
-wget https://ftp.ncbi.nlm.nih.gov/blast/db/human_genome.00.tar.gz
+FROM=1
+TO=5
 
-# unzip
-gunzip ./mouse_genome.00.tar.gz
-gunzip ./human_genome.00.tar.gz
 
-# change extenstion to fasta
-mv ./mouse_genome.00 ./mouse_genome.00.fasta
-mv ./pdhuman_genome.00baa ./pdbaahuman_genome.00.fasta
+for i in $(seq -f "%g" $FROM $TO)
+do
+    echo $i
+    cd databases
+    wget https://ftp.ncbi.nlm.nih.gov/genbank/gbbct$i.seq.gz
+    gunzip gbbct$i.seq.gz
 
-# remove zip files
-rm ./mouse_genome.00.tar.gz
-rm ./human_genome.00.tar.gz
-cd ..
-rm *.gz
+    # remove first 10 lines (macos)
+    sed -i '' 1,10d gbbct$i.seq
+
+    # change name, overwrite force
+    mv gbbct$i.seq gbbct$i.gb
+    cd ..
+done

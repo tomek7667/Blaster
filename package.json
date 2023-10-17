@@ -9,6 +9,6 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "biotech-js": "^1.0.1"
+    "biotech-js": "1.0.6"
   }
 }
