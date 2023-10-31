@@ -39,6 +39,34 @@ class BacteriaDataset(Dataset):
                 elif nucleotide == 'Y':
                     one_hot_sequence[i, j, 2] = 0.5
                     one_hot_sequence[i, j, 3] = 0.5
+                elif nucleotide == 'K':
+                    one_hot_sequence[i, j, 0] = 0.5
+                    one_hot_sequence[i, j, 2] = 0.5
+                elif nucleotide == 'M':
+                    one_hot_sequence[i, j, 1] = 0.5
+                    one_hot_sequence[i, j, 3] = 0.5
+                elif nucleotide == 'S':
+                    one_hot_sequence[i, j, 0] = 0.5
+                    one_hot_sequence[i, j, 3] = 0.5
+                elif nucleotide == 'W':
+                    one_hot_sequence[i, j, 1] = 0.5
+                    one_hot_sequence[i, j, 2] = 0.5
+                elif nucleotide == 'B':
+                    one_hot_sequence[i, j, 0] = 1/3
+                    one_hot_sequence[i, j, 2] = 1/3
+                    one_hot_sequence[i, j, 3] = 1/3
+                elif nucleotide == 'D':
+                    one_hot_sequence[i, j, 0] = 1/3
+                    one_hot_sequence[i, j, 1] = 1/3
+                    one_hot_sequence[i, j, 2] = 1/3
+                elif nucleotide == 'H':
+                    one_hot_sequence[i, j, 1] = 1/3
+                    one_hot_sequence[i, j, 2] = 1/3
+                    one_hot_sequence[i, j, 3] = 1/3
+                elif nucleotide == 'V':
+                    one_hot_sequence[i, j, 0] = 1/3
+                    one_hot_sequence[i, j, 1] = 1/3
+                    one_hot_sequence[i, j, 3] = 1/3
                 else:
                     one_hot_sequence[i, j, nucleotide_to_index[nucleotide]] = 1
         return one_hot_sequence
