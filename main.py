@@ -49,7 +49,11 @@ def train_model(model, train_loader, criterion, optimizer, device, num_epochs=10
     for epoch in range(num_epochs):
         model.train()
         running_loss = 0.0
+        train_loader_length = len(train_loader)
+        i = 0
         for inputs, targets in train_loader:
+            i += 1
+            print(f"Progress: {i}/{train_loader_length} = {100*i/train_loader_length:2f}%, Epoch: {epoch+1}/{num_epochs}")
             inputs = inputs.to(device)
             targets = targets.to(device)
             outputs = model(inputs)
@@ -59,6 +63,21 @@ def train_model(model, train_loader, criterion, optimizer, device, num_epochs=10
             optimizer.step()
             running_loss += loss.item()
         print(f"Epoch {epoch+1}/{num_epochs}, Loss: {running_loss / len(train_loader)}")
+
+
+def test_model(model, test_loader, criterion, device):
+    print('Testing model with F1 score...')
+    model.eval()
+    running_loss = 0.0
+    for inputs, targets in test_loader:
+        inputs = inputs.to(device)
+        targets = targets.to(device)
+        outputs = model(inputs)
+        loss = criterion(outputs, targets)
+        running_loss += loss.item()
+        print(f"Loss: {loss.item()}")
+    print(f"Loss: {running_loss / len(test_loader)}")
+
 
 def main():
     print('loading data.sequence_array ..')
@@ -81,27 +100,30 @@ def main():
     train_loader = DataLoader(train_dataset)
     test_loader = DataLoader(test_dataset)
     input_size = len(train_dataset[0][0])
+    print(f"input_size = {input_size}")
     num_classes = len(train_dataset.classes)
     print(f"input_size = {input_size}")
     print(f"num_classes = {num_classes}")
     classes = train_dataset.classes
     print(f"classes = {classes}")
-    model = Blaster(input_size, len(classes)).to(device)
+    model = Blaster(input_size, max_chunked_sequence_length, len(classes)).to(device)
     print(model)
-    # total = 0
-    # for name, param in model.named_parameters():
-    #     # flatten was skipped in named parameters and other layers
-    #     # because they dont have any named params. in fact they dont have any params at all.
-    #     # Flatten layer just reorders the tensor, so it doesnt have any params.
-    #     print(f"Layer: {name} | Size: {param.size()} | Num el: {param.numel()}")
-    #     total += param.numel()
-    # print(f"{total=}")
+    total = 0
+    for name, param in model.named_parameters():
+        # flatten was skipped in named parameters and other layers
+        # because they dont have any named params. in fact they dont have any params at all.
+        # Flatten layer just reorders the tensor, so it doesnt have any params.
+        print(f"Layer: {name} | Size: {param.size()} | Num el: {param.numel()}")
+        total += param.numel()
+    print(f"{total=}")
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
     train_model(model, train_loader, criterion, optimizer, device, num_epochs=10)
- 
-
+    # save the model
+    torch.save(model.state_dict(), model.get_model_name())
+    # test the model
+    test_model(model, test_loader, criterion, device)
     
 
 if __name__ == "__main__":
