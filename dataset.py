@@ -67,6 +67,11 @@ class BacteriaDataset(Dataset):
                     one_hot_sequence[i, j, 0] = 1/3
                     one_hot_sequence[i, j, 1] = 1/3
                     one_hot_sequence[i, j, 3] = 1/3
+                elif nucleotide == '-':
+                    one_hot_sequence[i, j, 0] = 0
+                    one_hot_sequence[i, j, 1] = 0
+                    one_hot_sequence[i, j, 2] = 0
+                    one_hot_sequence[i, j, 3] = 0
                 else:
                     one_hot_sequence[i, j, nucleotide_to_index[nucleotide]] = 1
         return one_hot_sequence
