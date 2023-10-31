@@ -1,33 +1,42 @@
 from torch import nn, optim
-from random import random
+from random import random, shuffle
 from load_data import *
 from model import *
 from dataset import *
 
 max_chunked_sequence_length = 8
 split_coeff = 0.8
-print('loading data.sequence_array ..')
-d = load_data("prepared/prepared_1697562094237-short.json")
-print('data loaded')
+path = "prepared/prepared_1697562094237.json"
 
-
-def prepare_learn_and_test_set():
+def prepare_learn_and_test_set(database):
     learn_data = []
     test_data = []
-    for record in d:
+
+    dict_classes = {}
+    for record in database:
         class_name = record['c']
         sequence = record['s']
-        sequence_array = []
-        for i in range(0, len(sequence), max_chunked_sequence_length):
-            chunked_sequence = sequence[i:i+max_chunked_sequence_length]
-            if len(chunked_sequence) < max_chunked_sequence_length:
-                break
-            sequence_array.append(chunked_sequence)
-        if random() < split_coeff:
-            learn_data.append((class_name, sequence_array))
-        else:
-            test_data.append((class_name, sequence_array))
-
+        
+        if not class_name in dict_classes:
+            dict_classes[class_name] = []
+        dict_classes[class_name].append(sequence)
+    
+    for class_name, sequences in dict_classes.items():
+        print(f'Dividing class {class_name} into learn and test set... (total length={len(sequences)})')
+        for sequence in sequences:
+            sequence_array = []
+            for i in range(0, len(sequence), max_chunked_sequence_length):
+                chunked_sequence = sequence[i:i+max_chunked_sequence_length]
+                if len(chunked_sequence) < max_chunked_sequence_length:
+                    break
+                sequence_array.append(chunked_sequence)
+            if random() < split_coeff:
+                learn_data.append((class_name, sequence_array))
+            else:
+                test_data.append((class_name, sequence_array))
+    print('Shuffling learn and test set...')
+    shuffle(learn_data)
+    shuffle(test_data)
     return learn_data, test_data
 
 def train_model(model, train_loader, criterion, optimizer, num_epochs=10):
@@ -44,8 +53,11 @@ def train_model(model, train_loader, criterion, optimizer, num_epochs=10):
         print(f"Epoch {epoch+1}/{num_epochs}, Loss: {running_loss / len(train_loader)}")
 
 def main():
+    print('loading data.sequence_array ..')
+    database = load_data(path)
+    print('data loaded')
     print('preparing learn and test set...')
-    learn_data, test_data = prepare_learn_and_test_set()
+    learn_data, test_data = prepare_learn_and_test_set(database)
     print('learn and test set prepared')
     learn_data_length = len(learn_data)
     test_data_length = len(test_data)
