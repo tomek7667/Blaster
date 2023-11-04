@@ -6,7 +6,9 @@ from dataset import *
 
 max_chunked_sequence_length = 8
 split_coeff = 0.8
+MAX_SEQUENCE_LENGTH = 120_000
 path = "prepared/prepared_1697562094237-short.json"
+
 
 def prepare_learn_and_test_set(database):
     learn_data = []
@@ -15,23 +17,30 @@ def prepare_learn_and_test_set(database):
     dict_classes = {}
     longest_sequence = 0
     for record in database:
-        class_name = record['c']
-        sequence = record['s']
-        
+        class_name = record["c"]
+        sequence = record["s"]
+
         if not class_name in dict_classes:
             dict_classes[class_name] = []
         dict_classes[class_name].append(sequence)
         if len(sequence) > longest_sequence:
             longest_sequence = len(sequence)
-    print(f'Longest sequence length: {longest_sequence} - to that number other sequences are going to be prefixidly padded')
+    if longest_sequence > MAX_SEQUENCE_LENGTH:
+        longest_sequence = MAX_SEQUENCE_LENGTH
+    print(
+        f"Longest sequence length: {longest_sequence} - to that number other sequences are going to be prefixidly padded"
+    )
     for class_name, sequences in dict_classes.items():
-        print(f'Dividing class {class_name} into learn and test set... (total length={len(sequences)})')
+        print(
+            f"Dividing class {class_name} into learn and test set... (total length={len(sequences)})"
+        )
         for sequence in sequences:
+            sequence = sequence[:MAX_SEQUENCE_LENGTH]
             # zero pad the sequence with '-' characters.
-            padded_sequence = '-' * (longest_sequence - len(sequence)) + sequence
+            padded_sequence = "-" * (longest_sequence - len(sequence)) + sequence
             sequence_array = []
             for i in range(0, len(padded_sequence), max_chunked_sequence_length):
-                chunked_sequence = padded_sequence[i:i+max_chunked_sequence_length]
+                chunked_sequence = padded_sequence[i : i + max_chunked_sequence_length]
                 if len(chunked_sequence) < max_chunked_sequence_length:
                     break
                 sequence_array.append(chunked_sequence)
@@ -39,34 +48,45 @@ def prepare_learn_and_test_set(database):
                 learn_data.append((class_name, sequence_array))
             else:
                 test_data.append((class_name, sequence_array))
-    print('Shuffling learn and test set...')
+    print("Shuffling learn and test set...")
     shuffle(learn_data)
     shuffle(test_data)
     return learn_data, test_data
 
+
 def train_model(model, train_loader, criterion, optimizer, device, num_epochs=10):
-    print('Training model...')
-    for epoch in range(num_epochs):
-        model.train()
-        running_loss = 0.0
-        train_loader_length = len(train_loader)
-        i = 0
-        for inputs, targets in train_loader:
-            i += 1
-            print(f"Progress: {i}/{train_loader_length} = {100*i/train_loader_length:2f}%, Epoch: {epoch+1}/{num_epochs}")
-            inputs = inputs.to(device)
-            targets = targets.to(device)
-            outputs = model(inputs)
-            loss = criterion(outputs, targets)
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-            running_loss += loss.item()
-        print(f"Epoch {epoch+1}/{num_epochs}, Loss: {running_loss / len(train_loader)}")
+    print("Training model...")
+    try:
+        for epoch in range(num_epochs):
+            model.train()
+            running_loss = 0.0
+            train_loader_length = len(train_loader)
+            i = 0
+            for inputs, targets in train_loader:
+                i += 1
+                print(
+                    f"Progress: {i}/{train_loader_length} = {100*i/train_loader_length:2f}%, Epoch: {epoch+1}/{num_epochs}"
+                )
+                inputs = inputs.to(device)
+                targets = targets.to(device)
+                outputs = model(inputs)
+                loss = criterion(outputs, targets)
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+                running_loss += loss.item()
+            print(
+                f"Epoch {epoch+1}/{num_epochs}, Loss: {running_loss / len(train_loader)}"
+            )
+    except KeyboardInterrupt:
+        print("Interrupted - saving model...")
+        torch.save(model.state_dict(), model.get_model_name())
+        print("Model saved")
+        exit(0)
 
 
 def test_model(model, test_loader, criterion, device):
-    print('Testing model with F1 score...')
+    print("Testing model with F1 score...")
     model.eval()
     running_loss = 0.0
     for inputs, targets in test_loader:
@@ -80,12 +100,12 @@ def test_model(model, test_loader, criterion, device):
 
 
 def main():
-    print('loading data.sequence_array ..')
+    print("loading data.sequence_array ..")
     database = load_data(path)
-    print('data loaded')
-    print('preparing learn and test set...')
+    print("data loaded")
+    print("preparing learn and test set...")
     learn_data, test_data = prepare_learn_and_test_set(database)
-    print('learn and test set prepared')
+    print("learn and test set prepared")
     learn_data_length = len(learn_data)
     test_data_length = len(test_data)
     total_data_length = learn_data_length + test_data_length
@@ -119,12 +139,12 @@ def main():
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=0.001)
-    train_model(model, train_loader, criterion, optimizer, device, num_epochs=10)
+    train_model(model, train_loader, criterion, optimizer, device, num_epochs=100)
     # save the model
     torch.save(model.state_dict(), model.get_model_name())
     # test the model
     test_model(model, test_loader, criterion, device)
-    
+
 
 if __name__ == "__main__":
     main()

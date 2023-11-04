@@ -1,6 +1,7 @@
 from time import time
 from torch import nn, cuda, backends
 
+
 def get_device():
     device = (
         "cuda"
@@ -11,6 +12,7 @@ def get_device():
     )
     return device
 
+
 class Blaster(nn.Module):
     def __init__(self, input_size, chunk_size, num_classes, bit_array_size=4):
         super(Blaster, self).__init__()
@@ -20,9 +22,8 @@ class Blaster(nn.Module):
             nn.ReLU(),
             nn.Linear(512, 256),
             nn.ReLU(),
-            nn.Linear(256, num_classes)
+            nn.Linear(256, num_classes),
         )
-
 
     def forward(self, x):
         x = self.flatten(x)
@@ -32,5 +33,3 @@ class Blaster(nn.Module):
 
     def get_model_name(self):
         return f"./models/Blaster_{int(time())}.pth"
-
- 
