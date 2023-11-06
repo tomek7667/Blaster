@@ -2,3 +2,4 @@ databases/*.fa
 databases/*.fasta
 databases/*.gb
 node_modules
+wandb/
