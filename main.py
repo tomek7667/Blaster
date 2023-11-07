@@ -25,6 +25,10 @@ wandb.init(
 )
 
 
+def random_name():
+    return "".join([hex(int(random() * 16))[2:] for _ in range(6)])
+
+
 def prepare_learn_and_test_set(database):
     learn_data = []
     test_data = []
@@ -103,6 +107,7 @@ def train_model(model, train_loader, criterion, optimizer, device, num_epochs=10
     except KeyboardInterrupt:
         print("Interrupted - saving model...")
         torch.save(model.state_dict(), model.get_model_name())
+
         print("Model saved")
         wandb.finish()
         exit(0)
@@ -149,8 +154,18 @@ def main():
     print(f"num_classes = {num_classes}")
     classes = train_dataset.classes
     print(f"classes = {classes}")
-    model = Blaster(input_size, max_chunked_sequence_length, len(classes)).to(device)
-    print(model)
+    model_name = random_name()
+    open(f"models/{model_name}.py", "w+").write(
+        f"""
+input_size = {input_size}
+max_chunked_sequence_length = {max_chunked_sequence_length}
+classes = {classes}
+model_name = "{model_name}"
+                                                """
+    )
+    model = Blaster(
+        input_size, max_chunked_sequence_length, len(classes), model_name
+    ).to(device)
     total = 0
     for name, param in model.named_parameters():
         # flatten was skipped in named parameters and other layers
