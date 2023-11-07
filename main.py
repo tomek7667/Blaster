@@ -141,6 +141,7 @@ def main():
     print(f"Test data length: {test_data_length}")
     print(f"split coeff = {split_coeff}, {learn_data_length/total_data_length*100}%")
     device = get_device()
+    print(f"{device=}")
     train_dataset = BacteriaDataset(learn_data)
     test_dataset = BacteriaDataset(test_data)
     print(train_dataset)
