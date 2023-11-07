@@ -3,11 +3,26 @@ from random import random, shuffle
 from load_data import *
 from model import *
 from dataset import *
+import wandb
 
 max_chunked_sequence_length = 8
 split_coeff = 0.8
+EPOCHS = 10
+LEARNING_RATE = 0.001
 MAX_SEQUENCE_LENGTH = 120_000
+BATCH_SIZE = 32
 path = "prepared/prepared_1697562094237-short.json"
+
+wandb.init(
+    project="Blaster",
+    config={
+        "learning_rate": LEARNING_RATE,
+        "architecture": "CNN",
+        "dataset": "BacteriaDataset",
+        "epochs": EPOCHS,
+        "batch_size": BATCH_SIZE,
+    },
+)
 
 
 def prepare_learn_and_test_set(database):
@@ -74,7 +89,14 @@ def train_model(model, train_loader, criterion, optimizer, device, num_epochs=10
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
-                running_loss += loss.item()
+                loss_item = loss.item()
+                running_loss += loss_item
+                wandb.log(
+                    {
+                        "loss": loss_item,
+                        "epoch": epoch,
+                    }
+                )
             print(
                 f"Epoch {epoch+1}/{num_epochs}, Loss: {running_loss / len(train_loader)}"
             )
@@ -82,6 +104,7 @@ def train_model(model, train_loader, criterion, optimizer, device, num_epochs=10
         print("Interrupted - saving model...")
         torch.save(model.state_dict(), model.get_model_name())
         print("Model saved")
+        wandb.finish()
         exit(0)
 
 
@@ -117,8 +140,8 @@ def main():
     test_dataset = BacteriaDataset(test_data)
     print(train_dataset)
     print(test_dataset)
-    train_loader = DataLoader(train_dataset)
-    test_loader = DataLoader(test_dataset)
+    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE)
+    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE)
     input_size = len(train_dataset[0][0])
     print(f"input_size = {input_size}")
     num_classes = len(train_dataset.classes)
@@ -138,12 +161,13 @@ def main():
     print(f"{total=}")
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
-    train_model(model, train_loader, criterion, optimizer, device, num_epochs=100)
+    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+    train_model(model, train_loader, criterion, optimizer, device, num_epochs=EPOCHS)
     # save the model
     torch.save(model.state_dict(), model.get_model_name())
     # test the model
     test_model(model, test_loader, criterion, device)
+    wandb.finish()
 
 
 if __name__ == "__main__":
