@@ -83,16 +83,13 @@ def train_model(
     optimizer,
     device,
     previous_running_loss,
-    starting_epoch,
     num_epochs=10,
 ):
-    print(f"Training model {starting_epoch}/{num_epochs=}...")
+    print(f"Training model {num_epochs=}...")
     try:
-        for epoch in range(starting_epoch, num_epochs):
+        for epoch in range(num_epochs):
             model.train()
-            running_loss = 0.0
-            if epoch == starting_epoch:
-                running_loss = previous_running_loss
+            running_loss = previous_running_loss
             train_loader_length = len(train_loader)
             i = 0
             for inputs, targets in train_loader:
@@ -146,9 +143,21 @@ def test_model(model, test_loader, criterion, device):
         targets = targets.to(device)
         outputs = model(inputs)
         loss = criterion(outputs, targets)
-        running_loss += loss.item()
+        loss_item = loss.item()
+        running_loss += loss_item
         print(f"Loss: {loss.item()}")
-    print(f"Loss: {running_loss / len(test_loader)}")
+        wandb.log(
+            {
+                "test_loss": loss_item,
+            }
+        )
+    average_loss = running_loss / len(test_loader)
+    wandb.log(
+        {
+            "average_test_loss": average_loss,
+        }
+    )
+    print(f"Loss: {average_loss}")
 
 
 def main():
@@ -208,10 +217,6 @@ model_name = "{model_name}"
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
     optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
     running_loss = checkpoint["loss"]
-    starting_epoch = checkpoint["epoch"]
-    print(f"{running_loss=}, {starting_epoch=}")
-    print(round(starting_epoch))
-    exit(0)
     train_model(
         model,
         train_loader,
@@ -219,7 +224,6 @@ model_name = "{model_name}"
         optimizer,
         device,
         running_loss,
-        int(checkpoint["epoch"]),
         num_epochs=EPOCHS,
     )
     # save the model

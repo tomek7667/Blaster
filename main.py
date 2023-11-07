@@ -130,9 +130,21 @@ def test_model(model, test_loader, criterion, device):
         targets = targets.to(device)
         outputs = model(inputs)
         loss = criterion(outputs, targets)
-        running_loss += loss.item()
+        loss_item = loss.item()
+        running_loss += loss_item
         print(f"Loss: {loss.item()}")
-    print(f"Loss: {running_loss / len(test_loader)}")
+        wandb.log(
+            {
+                "test_loss": loss_item,
+            }
+        )
+    average_loss = running_loss / len(test_loader)
+    wandb.log(
+        {
+            "average_test_loss": average_loss,
+        }
+    )
+    print(f"Loss: {average_loss}")
 
 
 def main():
