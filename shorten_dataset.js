@@ -1,7 +1,7 @@
 const { readFileSync, writeFileSync } = require("fs");
 
 // max is the min of the number of items per class, so around 34
-const ITEMS_PER_CLASS = 20;
+const ITEMS_PER_CLASS = 100;
 
 const p = "prepared/prepared_1697562094237.json";
 const out = "prepared/prepared_1697562094237-short.json";

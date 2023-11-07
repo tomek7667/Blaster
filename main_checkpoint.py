@@ -5,13 +5,16 @@ from model import *
 from dataset import *
 import wandb
 
-max_chunked_sequence_length = 8
 split_coeff = 0.8
 EPOCHS = 10
 LEARNING_RATE = 0.001
 MAX_SEQUENCE_LENGTH = 120_000
 BATCH_SIZE = 32
 path = "prepared/prepared_1697562094237-short.json"
+CHECKPOINT_MODEL_PATH = "models/Blaster_B2dd6b9_1699353998.pth"
+
+from models.B2dd6b9 import *
+
 
 wandb.init(
     project="Blaster",
@@ -26,7 +29,7 @@ wandb.init(
 
 
 def random_name():
-    return "B" + "".join([hex(int(random() * 16))[2:] for _ in range(6)])
+    return model_name
 
 
 def prepare_learn_and_test_set(database):
@@ -73,12 +76,23 @@ def prepare_learn_and_test_set(database):
     return learn_data, test_data
 
 
-def train_model(model, train_loader, criterion, optimizer, device, num_epochs=10):
-    print("Training model...")
+def train_model(
+    model,
+    train_loader,
+    criterion,
+    optimizer,
+    device,
+    previous_running_loss,
+    starting_epoch,
+    num_epochs=10,
+):
+    print(f"Training model {starting_epoch}/{num_epochs=}...")
     try:
-        for epoch in range(num_epochs):
+        for epoch in range(starting_epoch, num_epochs):
             model.train()
             running_loss = 0.0
+            if epoch == starting_epoch:
+                running_loss = previous_running_loss
             train_loader_length = len(train_loader)
             i = 0
             for inputs, targets in train_loader:
@@ -119,6 +133,8 @@ def train_model(model, train_loader, criterion, optimizer, device, num_epochs=10
         print("Model saved")
         wandb.finish()
         exit(0)
+    except Exception as e:
+        raise e
 
 
 def test_model(model, test_loader, criterion, device):
@@ -175,6 +191,10 @@ model_name = "{model_name}"
     model = Blaster(
         input_size, max_chunked_sequence_length, len(classes), model_name
     ).to(device)
+
+    checkpoint = torch.load(CHECKPOINT_MODEL_PATH)
+
+    model.load_state_dict(checkpoint["model_state_dict"])
     total = 0
     for name, param in model.named_parameters():
         # flatten was skipped in named parameters and other layers
@@ -186,7 +206,22 @@ model_name = "{model_name}"
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
-    train_model(model, train_loader, criterion, optimizer, device, num_epochs=EPOCHS)
+    optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+    running_loss = checkpoint["loss"]
+    starting_epoch = checkpoint["epoch"]
+    print(f"{running_loss=}, {starting_epoch=}")
+    print(round(starting_epoch))
+    exit(0)
+    train_model(
+        model,
+        train_loader,
+        criterion,
+        optimizer,
+        device,
+        running_loss,
+        int(checkpoint["epoch"]),
+        num_epochs=EPOCHS,
+    )
     # save the model
     torch.save(model.state_dict(), model.get_model_name())
     # test the model
