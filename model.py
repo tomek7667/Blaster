@@ -31,6 +31,8 @@ class Blaster(nn.Module):
     def forward(self, x):
         x = self.flatten(x)
         # This will give the x a length of input_size * chunk_size * 4 (bit-array one-hot)
+        print(x)
+
         logits = self.linear_relu_stack(x)
         return logits
 
