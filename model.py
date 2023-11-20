@@ -14,8 +14,11 @@ def get_device():
 
 
 class Blaster(nn.Module):
-    def __init__(self, input_size, chunk_size, num_classes, bit_array_size=4):
+    def __init__(
+        self, input_size, chunk_size, num_classes, model_name, bit_array_size=4
+    ):
         super(Blaster, self).__init__()
+        self.model_name = model_name
         self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential(
             nn.Linear(input_size * chunk_size * bit_array_size, 512),
@@ -32,4 +35,4 @@ class Blaster(nn.Module):
         return logits
 
     def get_model_name(self):
-        return f"./models/Blaster_{int(time())}.pth"
+        return f"./models/Blaster_{self.model_name}_{int(time())}.pth"
