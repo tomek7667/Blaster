@@ -9,7 +9,7 @@ max_chunked_sequence_length = 8
 split_coeff = 0.8
 EPOCHS = 10
 LEARNING_RATE = 0.001
-MAX_SEQUENCE_LENGTH = 120_000
+MAX_SEQUENCE_LENGTH = 30_000
 BATCH_SIZE = 32
 path = "prepared/prepared_1697562094237-short.json"
 
@@ -34,7 +34,7 @@ def prepare_learn_and_test_set(database):
     test_data = []
 
     dict_classes = {}
-    longest_sequence = 0
+    longest_sequence_length = 0
     for record in database:
         class_name = record["c"]
         sequence = record["s"]
@@ -42,12 +42,12 @@ def prepare_learn_and_test_set(database):
         if not class_name in dict_classes:
             dict_classes[class_name] = []
         dict_classes[class_name].append(sequence)
-        if len(sequence) > longest_sequence:
-            longest_sequence = len(sequence)
-    if longest_sequence > MAX_SEQUENCE_LENGTH:
-        longest_sequence = MAX_SEQUENCE_LENGTH
+        if len(sequence) > longest_sequence_length:
+            longest_sequence_length = len(sequence)
+    if longest_sequence_length > MAX_SEQUENCE_LENGTH:
+        longest_sequence_length = MAX_SEQUENCE_LENGTH
     print(
-        f"Longest sequence length: {longest_sequence} - to that number other sequences are going to be prefixidly padded"
+        f"Longest sequence length: {longest_sequence_length} - to that number other sequences are going to be prefixidly padded"
     )
     for class_name, sequences in dict_classes.items():
         print(
@@ -56,7 +56,7 @@ def prepare_learn_and_test_set(database):
         for sequence in sequences:
             sequence = sequence[:MAX_SEQUENCE_LENGTH]
             # zero pad the sequence with '-' characters.
-            padded_sequence = "-" * (longest_sequence - len(sequence)) + sequence
+            padded_sequence = "-" * (longest_sequence_length - len(sequence)) + sequence
             sequence_array = []
             for i in range(0, len(padded_sequence), max_chunked_sequence_length):
                 chunked_sequence = padded_sequence[i : i + max_chunked_sequence_length]
