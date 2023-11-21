@@ -41,22 +41,22 @@ class BlasterMultilayerPerceptron(nn.Module):
 
 
 class BlasterLSTM(nn.Module):
-    def __init__(
-        self, input_size, chunk_size, num_classes, model_name, bit_array_size=4
-    ):
+    def __init__(self, sequence_length, num_classes, model_name, bit_array_size=4):
         super(BlasterLSTM, self).__init__()
         self.model_name = model_name
         self.flatten = nn.Flatten()
-        self.lstm = nn.LSTM(
-            input_size * chunk_size * bit_array_size, 128, batch_first=True
-        )
-        self.linear = nn.Linear(128, num_classes)
+        self.lstm1 = nn.LSTM(bit_array_size, 128, batch_first=True)
+        self.linear1 = nn.Linear(128, 32)  # TODO: adjust
+        self.lstm2 = nn.LSTM(32, 128, batch_first=True)
+        self.linear2 = nn.Linear(128, num_classes)
 
     def forward(self, x):
-        x = self.flatten(x)
-        x = x.view(1, 1, -1)
-        x, _ = self.lstm(x)
-        x = self.linear(x)
+        x, _ = self.lstm1(x)
+        x = self.linear1(x)
+        x, _ = self.lstm2(x)
+        x = self.linear2(x[:, -1, :])
+        # print(x[:, -1:, :])
+        # print(x[:, -1:, :].shape)
         return x
 
     def get_model_name(self):

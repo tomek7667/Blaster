@@ -1,28 +1,28 @@
-from torch import nn, optim
+from torch import nn, optim, squeeze
 from random import random, shuffle
 from load_data import *
 from models import *
 from dataset import *
 import wandb
 
-max_chunked_sequence_length = 8
+max_chunked_sequence_length = 3
 split_coeff = 0.8
 EPOCHS = 10
 LEARNING_RATE = 0.001
-MAX_SEQUENCE_LENGTH = 30_000
-BATCH_SIZE = 32
+MAX_SEQUENCE_LENGTH = 30  # 30_000
+BATCH_SIZE = 2
 path = "prepared/prepared_1697562094237-short.json"
 
-wandb.init(
-    project="Blaster",
-    config={
-        "learning_rate": LEARNING_RATE,
-        "architecture": "CNN",
-        "dataset": "BacteriaDataset",
-        "epochs": EPOCHS,
-        "batch_size": BATCH_SIZE,
-    },
-)
+# wandb.init(
+#     project="Blaster",
+#     config={
+#         "learning_rate": LEARNING_RATE,
+#         "architecture": "CNN",
+#         "dataset": "BacteriaDataset",
+#         "epochs": EPOCHS,
+#         "batch_size": BATCH_SIZE,
+#     },
+# )
 
 
 def random_name():
@@ -57,17 +57,18 @@ def prepare_learn_and_test_set(database):
             sequence = sequence[:MAX_SEQUENCE_LENGTH]
             # zero pad the sequence with '-' characters.
             padded_sequence = "-" * (longest_sequence_length - len(sequence)) + sequence
-            sequence_array = []
-            for i in range(0, len(padded_sequence), max_chunked_sequence_length):
-                chunked_sequence = padded_sequence[i : i + max_chunked_sequence_length]
-                if len(chunked_sequence) < max_chunked_sequence_length:
-                    break
-                sequence_array.append(chunked_sequence)
+            # sequence_array = []
+            # for i in range(0, len(padded_sequence), max_chunked_sequence_length):
+            #     chunked_sequence = padded_sequence[i : i + max_chunked_sequence_length]
+            #     if len(chunked_sequence) < max_chunked_sequence_length:
+            #         break
+            #     sequence_array.append(chunked_sequence)
             if random() < split_coeff:
-                learn_data.append((class_name, sequence_array))
+                learn_data.append((class_name, padded_sequence))
             else:
-                test_data.append((class_name, sequence_array))
+                test_data.append((class_name, padded_sequence))
     print("Shuffling learn and test set...")
+    print(learn_data[0])
     shuffle(learn_data)
     shuffle(test_data)
     return learn_data, test_data
@@ -89,18 +90,21 @@ def train_model(model, train_loader, criterion, optimizer, device, num_epochs=10
                 inputs = inputs.to(device)
                 targets = targets.to(device)
                 outputs = model(inputs)
+                # print(outputs.shape)
+                # print(targets.shape)
+                # exit(0)
                 loss = criterion(outputs, targets)
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
                 loss_item = loss.item()
                 running_loss += loss_item
-                wandb.log(
-                    {
-                        "loss": loss_item,
-                        "epoch": epoch,
-                    }
-                )
+                # wandb.log(
+                #     {
+                #         "loss": loss_item,
+                #         "epoch": epoch,
+                #     }
+                # )
             print(
                 f"Epoch {epoch+1}/{num_epochs}, Loss: {running_loss / len(train_loader)}"
             )
@@ -117,7 +121,7 @@ def train_model(model, train_loader, criterion, optimizer, device, num_epochs=10
         )
 
         print("Model saved")
-        wandb.finish()
+        # wandb.finish()
         exit(0)
 
 
@@ -165,28 +169,35 @@ def main():
     train_dataset = BacteriaDataset(learn_data)
     test_dataset = BacteriaDataset(test_data)
     print(train_dataset)
+
     print(test_dataset)
     train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE)
     test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE)
-    input_size = len(train_dataset[0][0])
-    print(f"input_size = {input_size}")
+    for x, y in train_loader:
+        print(x.shape)
+        break
+
+    sequence_length = len(train_dataset[0][0])
+    print(f"{sequence_length=}")
+
     num_classes = len(train_dataset.classes)
-    print(f"input_size = {input_size}")
-    print(f"num_classes = {num_classes}")
-    classes = train_dataset.classes
-    print(f"classes = {classes}")
+    print(f"{num_classes=}")
+
+    # classes = train_dataset.classes
+    #     print(f"classes = {classes}")
+
     model_name = random_name()
-    open(f"models/{model_name}.py", "w+").write(
-        f"""
-input_size = {input_size}
-max_chunked_sequence_length = {max_chunked_sequence_length}
-classes = {classes}
-model_name = "{model_name}"
-"""
-    )
-    model = BlasterLSTM(
-        input_size, max_chunked_sequence_length, len(classes), model_name
-    ).to(device)
+
+    #     open(f"models/{model_name}.py", "w+").write(
+    #         f"""
+    # input_size = {input_size}
+    # max_chunked_sequence_length = {max_chunked_sequence_length}
+    # classes = {classes}
+    # model_name = "{model_name}"
+    # """
+    #     )
+
+    model = BlasterLSTM(sequence_length, num_classes, model_name).to(device)
     total = 0
     for name, param in model.named_parameters():
         # flatten was skipped in named parameters and other layers
@@ -198,12 +209,25 @@ model_name = "{model_name}"
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+
+    # for x, y in train_loader:
+    #     x = x.to(device)
+    #     y = y.to(device)
+    #     ypred = model(x)
+
+    #     print(ypred)
+    #     print(ypred.shape)
+
+    #     break
+
     train_model(model, train_loader, criterion, optimizer, device, num_epochs=EPOCHS)
-    # save the model
-    torch.save(model.state_dict(), model.get_model_name())
-    # test the model
-    test_model(model, test_loader, criterion, device)
-    wandb.finish()
+
+
+#     # save the model
+#     torch.save(model.state_dict(), model.get_model_name())
+#     # test the model
+#     test_model(model, test_loader, criterion, device)
+#     wandb.finish()
 
 
 if __name__ == "__main__":
