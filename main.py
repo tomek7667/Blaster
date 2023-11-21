@@ -1,7 +1,7 @@
 from torch import nn, optim
 from random import random, shuffle
 from load_data import *
-from model import *
+from models import *
 from dataset import *
 import wandb
 
@@ -184,7 +184,7 @@ classes = {classes}
 model_name = "{model_name}"
 """
     )
-    model = Blaster(
+    model = BlasterLSTM(
         input_size, max_chunked_sequence_length, len(classes), model_name
     ).to(device)
     total = 0

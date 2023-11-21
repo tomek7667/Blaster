@@ -13,11 +13,11 @@ def get_device():
     return device
 
 
-class Blaster(nn.Module):
+class BlasterMultilayerPerceptron(nn.Module):
     def __init__(
         self, input_size, chunk_size, num_classes, model_name, bit_array_size=4
     ):
-        super(Blaster, self).__init__()
+        super(BlasterMultilayerPerceptron, self).__init__()
         self.model_name = model_name
         self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential(
@@ -35,4 +35,28 @@ class Blaster(nn.Module):
         return logits
 
     def get_model_name(self):
-        return f"./models/Blaster_{self.model_name}_{int(time())}.pth"
+        return (
+            f"./models/BlasterMultilayerPerceptron_{self.model_name}_{int(time())}.pth"
+        )
+
+
+class BlasterLSTM(nn.Module):
+    def __init__(
+        self, input_size, chunk_size, num_classes, model_name, bit_array_size=4
+    ):
+        super(BlasterLSTM, self).__init__()
+        self.embedding = nn.Embedding()
+        self.lstm = nn.LSTM(
+            input_size * chunk_size * bit_array_size, 256, 512, batch_first=True
+        )
+        self.fc = nn.Linear(256, num_classes)
+
+    def forward(self, x):
+        x = self.embedding(x)
+        lstm_out, _ = self.lstm(x)
+        lstm_out = lstm_out[:, -1, :]
+        output = self.fc(lstm_out)
+        return output
+
+    def get_model_name(self):
+        return f"./models/BlasterLSTM_{self.model_name}_{int(time())}.pth"
