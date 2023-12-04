@@ -13,18 +13,6 @@ MAX_SEQUENCE_LENGTH = 30  # 30_000
 BATCH_SIZE = 2
 path = "prepared/prepared_1697562094237-short.json"
 
-wandb.init(
-    project="Blaster",
-    config={
-        "learning_rate": LEARNING_RATE,
-        "architecture": "CNN",
-        "dataset": "BacteriaDataset",
-        "epochs": EPOCHS,
-        "batch_size": BATCH_SIZE,
-    },
-)
-
-
 def random_name():
     return "B" + "".join([hex(int(random() * 16))[2:] for _ in range(6)])
 
@@ -76,6 +64,9 @@ def prepare_learn_and_test_set(database):
 
 def train_model(model, train_loader, criterion, optimizer, device, num_epochs=10):
     print("Training model...")
+
+
+
     try:
         for epoch in range(num_epochs):
             model.train()
@@ -152,6 +143,23 @@ def test_model(model, test_loader, criterion, device):
 
 
 def main():
+    sweep_config = {
+        'method': 'grid',
+        'parameters': {
+            'dropout': {
+                'values': [0.3, 0.4, 0.5]
+            },
+            'optimizer': {
+                'values': ['adam', 'sgd']
+            },
+        }
+    }
+    sweep_id = wandb.sweep(sweep_config)
+    wandb.agent(sweep_id, function=start)
+
+def start():
+    wandb.init()
+
     print("loading data.sequence_array ..")
     database = load_data(path)
     print("data loaded")
@@ -197,7 +205,7 @@ def main():
     # """
     #     )
 
-    model = BlasterLSTM(sequence_length, num_classes, model_name).to(device)
+    model = BlasterLSTM(sequence_length, num_classes, model_name, 4, wandb.config).to(device)
     total = 0
     for name, param in model.named_parameters():
         # flatten was skipped in named parameters and other layers
@@ -208,7 +216,13 @@ def main():
     print(f"{total=}")
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+
+    optimizer_type = wandb.config.optimizer
+    optimizer = None
+    if optimizer_type == "sgd":
+        optimizer = optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=0.9)
+    elif optimizer_type == "adam":
+        optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
     # for x, y in train_loader:
     #     x = x.to(device)
@@ -226,7 +240,7 @@ def main():
     #     torch.save(model.state_dict(), model.get_model_name())
     #     # test the model
     #     test_model(model, test_loader, criterion, device)
-    wandb.finish()
+    # wandb.finish()
 
 
 if __name__ == "__main__":
