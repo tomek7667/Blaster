@@ -13,16 +13,16 @@ MAX_SEQUENCE_LENGTH = 30  # 30_000
 BATCH_SIZE = 2
 path = "prepared/prepared_1697562094237-short.json"
 
-# wandb.init(
-#     project="Blaster",
-#     config={
-#         "learning_rate": LEARNING_RATE,
-#         "architecture": "CNN",
-#         "dataset": "BacteriaDataset",
-#         "epochs": EPOCHS,
-#         "batch_size": BATCH_SIZE,
-#     },
-# )
+wandb.init(
+    project="Blaster",
+    config={
+        "learning_rate": LEARNING_RATE,
+        "architecture": "CNN",
+        "dataset": "BacteriaDataset",
+        "epochs": EPOCHS,
+        "batch_size": BATCH_SIZE,
+    },
+)
 
 
 def random_name():
@@ -99,12 +99,12 @@ def train_model(model, train_loader, criterion, optimizer, device, num_epochs=10
                 optimizer.step()
                 loss_item = loss.item()
                 running_loss += loss_item
-                # wandb.log(
-                #     {
-                #         "loss": loss_item,
-                #         "epoch": epoch,
-                #     }
-                # )
+                wandb.log(
+                    {
+                        "loss": loss_item,
+                        "epoch": epoch,
+                    }
+                )
             print(
                 f"Epoch {epoch+1}/{num_epochs}, Loss: {running_loss / len(train_loader)}"
             )
@@ -121,7 +121,7 @@ def train_model(model, train_loader, criterion, optimizer, device, num_epochs=10
         )
 
         print("Model saved")
-        # wandb.finish()
+        wandb.finish()
         exit(0)
 
 
@@ -222,12 +222,11 @@ def main():
 
     train_model(model, train_loader, criterion, optimizer, device, num_epochs=EPOCHS)
 
-
-#     # save the model
-#     torch.save(model.state_dict(), model.get_model_name())
-#     # test the model
-#     test_model(model, test_loader, criterion, device)
-#     wandb.finish()
+    #     # save the model
+    #     torch.save(model.state_dict(), model.get_model_name())
+    #     # test the model
+    #     test_model(model, test_loader, criterion, device)
+    wandb.finish()
 
 
 if __name__ == "__main__":
