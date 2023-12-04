@@ -29,56 +29,54 @@ class BacteriaDataset(Dataset):
 
     def sequence_to_one_hot(self, sequence):
         nucleotide_to_index = {"G": 0, "A": 1, "T": 2, "C": 3}
-        one_hot_sequence = np.zeros(
-            (len(sequence), len(sequence[0]), len(nucleotide_to_index))
-        )
+        one_hot_sequence = np.zeros((len(sequence), len(nucleotide_to_index)))
         for i, seq in enumerate(sequence):
-            for j, nucleotide in enumerate(seq):
-                if nucleotide == "N":
-                    # In case of wildcards, we assign equal probability to each nucleotide
-                    one_hot_sequence[i, j, 0] = 0.25
-                    one_hot_sequence[i, j, 1] = 0.25
-                    one_hot_sequence[i, j, 2] = 0.25
-                    one_hot_sequence[i, j, 3] = 0.25
-                elif nucleotide == "R":
-                    one_hot_sequence[i, j, 0] = 0.5
-                    one_hot_sequence[i, j, 1] = 0.5
-                elif nucleotide == "Y":
-                    one_hot_sequence[i, j, 2] = 0.5
-                    one_hot_sequence[i, j, 3] = 0.5
-                elif nucleotide == "K":
-                    one_hot_sequence[i, j, 0] = 0.5
-                    one_hot_sequence[i, j, 2] = 0.5
-                elif nucleotide == "M":
-                    one_hot_sequence[i, j, 1] = 0.5
-                    one_hot_sequence[i, j, 3] = 0.5
-                elif nucleotide == "S":
-                    one_hot_sequence[i, j, 0] = 0.5
-                    one_hot_sequence[i, j, 3] = 0.5
-                elif nucleotide == "W":
-                    one_hot_sequence[i, j, 1] = 0.5
-                    one_hot_sequence[i, j, 2] = 0.5
-                elif nucleotide == "B":
-                    one_hot_sequence[i, j, 0] = 1 / 3
-                    one_hot_sequence[i, j, 2] = 1 / 3
-                    one_hot_sequence[i, j, 3] = 1 / 3
-                elif nucleotide == "D":
-                    one_hot_sequence[i, j, 0] = 1 / 3
-                    one_hot_sequence[i, j, 1] = 1 / 3
-                    one_hot_sequence[i, j, 2] = 1 / 3
-                elif nucleotide == "H":
-                    one_hot_sequence[i, j, 1] = 1 / 3
-                    one_hot_sequence[i, j, 2] = 1 / 3
-                    one_hot_sequence[i, j, 3] = 1 / 3
-                elif nucleotide == "V":
-                    one_hot_sequence[i, j, 0] = 1 / 3
-                    one_hot_sequence[i, j, 1] = 1 / 3
-                    one_hot_sequence[i, j, 3] = 1 / 3
-                elif nucleotide == "-":
-                    one_hot_sequence[i, j, 0] = 0
-                    one_hot_sequence[i, j, 1] = 0
-                    one_hot_sequence[i, j, 2] = 0
-                    one_hot_sequence[i, j, 3] = 0
-                else:
-                    one_hot_sequence[i, j, nucleotide_to_index[nucleotide]] = 1
+            nucleotide = seq.upper()
+            if nucleotide == "N":
+                # In case of wildcards, we assign equal probability to each nucleotide
+                one_hot_sequence[i, 0] = 0.25
+                one_hot_sequence[i, 1] = 0.25
+                one_hot_sequence[i, 2] = 0.25
+                one_hot_sequence[i, 3] = 0.25
+            elif nucleotide == "R":
+                one_hot_sequence[i, 0] = 0.5
+                one_hot_sequence[i, 1] = 0.5
+            elif nucleotide == "Y":
+                one_hot_sequence[i, 2] = 0.5
+                one_hot_sequence[i, 3] = 0.5
+            elif nucleotide == "K":
+                one_hot_sequence[i, 0] = 0.5
+                one_hot_sequence[i, 2] = 0.5
+            elif nucleotide == "M":
+                one_hot_sequence[i, 1] = 0.5
+                one_hot_sequence[i, 3] = 0.5
+            elif nucleotide == "S":
+                one_hot_sequence[i, 0] = 0.5
+                one_hot_sequence[i, 3] = 0.5
+            elif nucleotide == "W":
+                one_hot_sequence[i, 1] = 0.5
+                one_hot_sequence[i, 2] = 0.5
+            elif nucleotide == "B":
+                one_hot_sequence[i, 0] = 1 / 3
+                one_hot_sequence[i, 2] = 1 / 3
+                one_hot_sequence[i, 3] = 1 / 3
+            elif nucleotide == "D":
+                one_hot_sequence[i, 0] = 1 / 3
+                one_hot_sequence[i, 1] = 1 / 3
+                one_hot_sequence[i, 2] = 1 / 3
+            elif nucleotide == "H":
+                one_hot_sequence[i, 1] = 1 / 3
+                one_hot_sequence[i, 2] = 1 / 3
+                one_hot_sequence[i, 3] = 1 / 3
+            elif nucleotide == "V":
+                one_hot_sequence[i, 0] = 1 / 3
+                one_hot_sequence[i, 1] = 1 / 3
+                one_hot_sequence[i, 3] = 1 / 3
+            elif nucleotide == "-":
+                one_hot_sequence[i, 0] = 0
+                one_hot_sequence[i, 1] = 0
+                one_hot_sequence[i, 2] = 0
+                one_hot_sequence[i, 3] = 0
+            else:
+                one_hot_sequence[i, nucleotide_to_index[nucleotide]] = 1
         return one_hot_sequence

@@ -1,5 +1,5 @@
 from torch import load
-from model import Blaster, get_device
+from models import Blaster, get_device
 from models.ba26ed import *
 
 
