@@ -147,11 +147,17 @@ def main():
         'method': 'grid',
         'parameters': {
             'dropout': {
-                'values': [0.3, 0.4, 0.5]
+                'values': [0.0, 0.3, 0.5]
             },
             'optimizer': {
-                'values': ['adam', 'sgd']
+                'values': ['adam']
             },
+            'learning_rate': {
+                'values': [0.0001, 0.001, 0.01]
+            },
+            'batch_size': {
+                'values': [2, 3, 6]
+            }
         }
     }
     sweep_id = wandb.sweep(sweep_config)
@@ -179,8 +185,8 @@ def start():
     print(train_dataset)
 
     print(test_dataset)
-    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE)
-    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE)
+    train_loader = DataLoader(train_dataset, batch_size=wandb.config.batch_size)
+    test_loader = DataLoader(test_dataset, batch_size=wandb.config.batch_size)
     for x, y in train_loader:
         print(x.shape)
         break
@@ -220,9 +226,9 @@ def start():
     optimizer_type = wandb.config.optimizer
     optimizer = None
     if optimizer_type == "sgd":
-        optimizer = optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=0.9)
+        optimizer = optim.SGD(model.parameters(), lr=wandb.config.learning_rate, momentum=0.9)
     elif optimizer_type == "adam":
-        optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+        optimizer = optim.Adam(model.parameters(), lr=wandb.config.learning_rate)
 
     # for x, y in train_loader:
     #     x = x.to(device)
