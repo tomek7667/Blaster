@@ -46,10 +46,13 @@ class BlasterLSTM(nn.Module):
 
         self.model_name = model_name
         self.flatten = nn.Flatten()
-        self.lstm1 = nn.LSTM(bit_array_size, 128, batch_first=True, dropout=wandb_config.dropout)
-        self.linear1 = nn.Linear(128, 32)  # TODO: adjust
-        self.lstm2 = nn.LSTM(32, 128, batch_first=True, dropout=wandb_config.dropout)
-        self.linear2 = nn.Linear(128, num_classes)
+        if wandb_config["use_linear1"]:
+            self.lstm1 = nn.LSTM(bit_array_size, wandb_config["a_size"], batch_first=True, dropout=wandb_config.dropout)
+            self.linear1 = nn.Linear(wandb_config["a_size"], wandb_config["b_size"])  # TODO: adjust
+            self.lstm2 = nn.LSTM(wandb_config["b_size"], wandb_config["c_size"], batch_first=True, dropout=wandb_config.dropout)
+        else:
+            self.lstm1 = nn.LSTM(bit_array_size, wandb_config["c_size"], batch_first=True, dropout=wandb_config.dropout)
+        self.linear2 = nn.Linear(wandb_config["c_size"], num_classes)
 
     def forward(self, x):
         x, _ = self.lstm1(x)

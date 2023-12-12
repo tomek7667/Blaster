@@ -9,9 +9,10 @@ max_chunked_sequence_length = 3
 split_coeff = 0.8
 EPOCHS = 10
 LEARNING_RATE = 0.001
-MAX_SEQUENCE_LENGTH = 30  # 30_000
+MAX_SEQUENCE_LENGTH = 350  # 30_000
 BATCH_SIZE = 2
 path = "prepared/prepared_1697562094237-short.json"
+# path = "prepared/prepared_1697562094237-short.json"
 
 def random_name():
     return "B" + "".join([hex(int(random() * 16))[2:] for _ in range(6)])
@@ -75,9 +76,9 @@ def train_model(model, train_loader, criterion, optimizer, device, num_epochs=10
             i = 0
             for inputs, targets in train_loader:
                 i += 1
-                print(
-                    f"Progress: {i}/{train_loader_length} = {100*i/train_loader_length:2f}%, Epoch: {epoch+1}/{num_epochs}"
-                )
+                # print(
+                #     f"Progress: {i}/{train_loader_length} = {100*i/train_loader_length:2f}%, Epoch: {epoch+1}/{num_epochs}"
+                # )
                 inputs = inputs.to(device)
                 targets = targets.to(device)
                 outputs = model(inputs)
@@ -144,24 +145,36 @@ def test_model(model, test_loader, criterion, device):
 
 def main():
     sweep_config = {
-        'method': 'grid',
+        'method': 'random',
         'parameters': {
             'dropout': {
-                'values': [0.0, 0.3, 0.5]
+                'values': [0.0, 0.25, 0.4]
             },
             'optimizer': {
                 'values': ['adam']
             },
             'learning_rate': {
-                'values': [0.0001, 0.001, 0.01]
+                'values': [0.01, 0.05]
             },
             'batch_size': {
-                'values': [2, 3, 6]
+                'values': [12]
+            },
+            'a_size': {
+                'values': [128, 256]
+            },
+            'b_size': {
+                'values': [16, 32, 64, 128]
+            },
+            'c_size': {
+                'values': [64, 128, 256, 512]
+            },
+            'use_linear1': {
+                'values': [True]
             }
         }
     }
     sweep_id = wandb.sweep(sweep_config)
-    wandb.agent(sweep_id, function=start)
+    wandb.agent(sweep_id, function=start, count=40)
 
 def start():
     wandb.init()
@@ -243,10 +256,10 @@ def start():
     train_model(model, train_loader, criterion, optimizer, device, num_epochs=EPOCHS)
 
     #     # save the model
-    #     torch.save(model.state_dict(), model.get_model_name())
+    torch.save(model.state_dict(), model.get_model_name())
     #     # test the model
-    #     test_model(model, test_loader, criterion, device)
-    # wandb.finish()
+    test_model(model, test_loader, criterion, device)
+    wandb.finish()
 
 
 if __name__ == "__main__":
