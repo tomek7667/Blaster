@@ -157,7 +157,7 @@ def main():
                 'values': [0.01, 0.05]
             },
             'batch_size': {
-                'values': [12]
+                'values': [3, 12]
             },
             'a_size': {
                 'values': [128, 256]
