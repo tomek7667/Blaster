@@ -46,7 +46,7 @@ def apply_single_mutation(sequence):
 # mutations_degree is the number of mutations that will be applied to each sequence
 def load_data(
     path="prepared/prepared_1697562094237-short.json",
-    mutations_multiplier=3,
+    mutations_multiplier=4,
     mutations_degree=50,
 ):
     with open(path, "r") as f:

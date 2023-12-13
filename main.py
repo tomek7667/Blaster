@@ -1,28 +1,19 @@
 from torch import nn, optim, squeeze
+import time
 from random import random, shuffle
 from load_data import *
 from models import *
 from dataset import *
 import wandb
 
-max_chunked_sequence_length = 3
 split_coeff = 0.8
 EPOCHS = 10
 LEARNING_RATE = 0.001
-MAX_SEQUENCE_LENGTH = 30  # 30_000
-BATCH_SIZE = 2
+MAX_SEQUENCE_LENGTH = 700  # 30_000
+BATCH_SIZE = 16
+MUTATION_IN_SEQUENCE_COEFFICIENT = 0.3
+MUTATIONS_PER_SEQUENCE = 5
 path = "prepared/prepared_1697562094237-short.json"
-
-wandb.init(
-    project="Blaster",
-    config={
-        "learning_rate": LEARNING_RATE,
-        "architecture": "CNN",
-        "dataset": "BacteriaDataset",
-        "epochs": EPOCHS,
-        "batch_size": BATCH_SIZE,
-    },
-)
 
 
 def random_name():
@@ -32,7 +23,6 @@ def random_name():
 def prepare_learn_and_test_set(database):
     learn_data = []
     test_data = []
-
     dict_classes = {}
     longest_sequence_length = 0
     for record in database:
@@ -55,14 +45,7 @@ def prepare_learn_and_test_set(database):
         )
         for sequence in sequences:
             sequence = sequence[:MAX_SEQUENCE_LENGTH]
-            # zero pad the sequence with '-' characters.
             padded_sequence = "-" * (longest_sequence_length - len(sequence)) + sequence
-            # sequence_array = []
-            # for i in range(0, len(padded_sequence), max_chunked_sequence_length):
-            #     chunked_sequence = padded_sequence[i : i + max_chunked_sequence_length]
-            #     if len(chunked_sequence) < max_chunked_sequence_length:
-            #         break
-            #     sequence_array.append(chunked_sequence)
             if random() < split_coeff:
                 learn_data.append((class_name, padded_sequence))
             else:
@@ -82,17 +65,18 @@ def train_model(model, train_loader, criterion, optimizer, device, num_epochs=10
             running_loss = 0.0
             train_loader_length = len(train_loader)
             i = 0
+            time_start = time()
             for inputs, targets in train_loader:
                 i += 1
-                print(
-                    f"Progress: {i}/{train_loader_length} = {100*i/train_loader_length:2f}%, Epoch: {epoch+1}/{num_epochs}"
-                )
+                if i % 100 == 0:
+                    took = time() - time_start
+                    print(
+                        f"Progress: {i}/{train_loader_length} = {100*i/train_loader_length:2f}%, Epoch: {epoch+1}/{num_epochs}, took: {took:.2f}s"
+                    )
+                    time_start = time()
                 inputs = inputs.to(device)
                 targets = targets.to(device)
                 outputs = model(inputs)
-                # print(outputs.shape)
-                # print(targets.shape)
-                # exit(0)
                 loss = criterion(outputs, targets)
                 optimizer.zero_grad()
                 loss.backward()
@@ -143,17 +127,37 @@ def test_model(model, test_loader, criterion, device):
             }
         )
     average_loss = running_loss / len(test_loader)
-    wandb.log(
-        {
-            "average_test_loss": average_loss,
-        }
-    )
-    print(f"Loss: {average_loss}")
+    print(f"{average_loss =}")
 
 
 def main():
+    sweep_config = {
+        "method": "random",
+        "parameters": {
+            "dropout": {"values": [0.2, 0.4]},
+            "optimizer": {"values": ["adam"]},
+            "learning_rate": {"values": [0.01]},
+            "batch_size": {"values": [3, 12]},
+            "a_size": {"values": [128, 256]},
+            "b_size": {"values": [16, 48, 128]},
+            "c_size": {"values": [128, 256, 512]},
+        },
+    }
+    sweep_id = wandb.sweep(sweep_config)
+    wandb.agent(sweep_id, function=start, count=15)
+
+
+def start():
+    wandb.init()
+    print(
+        f"Starting sweep with {wandb.config.dropout=}, {wandb.config.optimizer=}, {wandb.config.learning_rate=}, {wandb.config.batch_size=}, {wandb.config.a_size=}, {wandb.config.b_size=}, {wandb.config.c_size=}"
+    )
     print("loading data.sequence_array ..")
-    database = load_data(path)
+    database = load_data(
+        path,
+        MUTATIONS_PER_SEQUENCE,
+        int(MAX_SEQUENCE_LENGTH * MUTATION_IN_SEQUENCE_COEFFICIENT),
+    )
     print("data loaded")
     print("preparing learn and test set...")
     learn_data, test_data = prepare_learn_and_test_set(database)
@@ -165,17 +169,11 @@ def main():
     print(f"Test data length: {test_data_length}")
     print(f"split coeff = {split_coeff}, {learn_data_length/total_data_length*100}%")
     device = get_device()
-    print(f"{device=}")
+    print(f"{device =}")
     train_dataset = BacteriaDataset(learn_data)
     test_dataset = BacteriaDataset(test_data)
-    print(train_dataset)
-
-    print(test_dataset)
-    train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE)
-    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE)
-    for x, y in train_loader:
-        print(x.shape)
-        break
+    train_loader = DataLoader(train_dataset, batch_size=wandb.config.batch_size)
+    test_loader = DataLoader(test_dataset, batch_size=wandb.config.batch_size)
 
     sequence_length = len(train_dataset[0][0])
     print(f"{sequence_length=}")
@@ -183,49 +181,53 @@ def main():
     num_classes = len(train_dataset.classes)
     print(f"{num_classes=}")
 
-    # classes = train_dataset.classes
-    #     print(f"classes = {classes}")
-
+    classes = train_dataset.classes
     model_name = random_name()
-
-    #     open(f"models/{model_name}.py", "w+").write(
-    #         f"""
-    # input_size = {input_size}
-    # max_chunked_sequence_length = {max_chunked_sequence_length}
-    # classes = {classes}
-    # model_name = "{model_name}"
-    # """
-    #     )
-
-    model = BlasterLSTM(sequence_length, num_classes, model_name).to(device)
-    total = 0
+    open(
+        f"models/{model_name}.py",
+        "w",
+    ).write(
+        f"""
+classes = {classes}
+sequence_length = {sequence_length}
+num_classes = {num_classes}
+dropout = {wandb.config.dropout}
+a_size = {wandb.config.a_size}
+b_size = {wandb.config.b_size}
+c_size = {wandb.config.c_size}
+batch_size = {wandb.config.batch_size}
+optimizer = "{wandb.config.optimizer}"
+learning_rate = {wandb.config.learning_rate}           		
+"""
+    )
+    model = BlasterLSTM(num_classes, model_name, 4, wandb.config).to(device)
+    total_parameters_number = 0
     for name, param in model.named_parameters():
         # flatten was skipped in named parameters and other layers
         # because they dont have any named params. in fact they dont have any params at all.
         # Flatten layer just reorders the tensor, so it doesnt have any params.
         print(f"Layer: {name} | Size: {param.size()} | Num el: {param.numel()}")
-        total += param.numel()
-    print(f"{total=}")
+        total_parameters_number += param.numel()
+    print(f"{total_parameters_number =}")
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
-    # for x, y in train_loader:
-    #     x = x.to(device)
-    #     y = y.to(device)
-    #     ypred = model(x)
+    optimizer_type = wandb.config.optimizer
+    optimizer = None
+    if optimizer_type == "sgd":
+        optimizer = optim.SGD(
+            model.parameters(), lr=wandb.config.learning_rate, momentum=0.9
+        )
+    elif optimizer_type == "adam":
+        optimizer = optim.Adam(model.parameters(), lr=wandb.config.learning_rate)
 
-    #     print(ypred)
-    #     print(ypred.shape)
-
-    #     break
-
+    print("Starting training...")
     train_model(model, train_loader, criterion, optimizer, device, num_epochs=EPOCHS)
-
-    #     # save the model
-    #     torch.save(model.state_dict(), model.get_model_name())
-    #     # test the model
-    #     test_model(model, test_loader, criterion, device)
+    torch.save(model.state_dict(), model.get_model_name())
+    print("Training finished")
+    print("Starting testing...")
+    test_model(model, test_loader, criterion, device)
+    print("Testing finished")
     wandb.finish()
 
 
