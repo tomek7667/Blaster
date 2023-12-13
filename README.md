@@ -7,3 +7,7 @@
 2. Split sequences into smaller chunks
 3. For each record extract the records result class
 4. Split each record into smaller chunks
+
+## What's going on
+
+1.

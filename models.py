@@ -1,4 +1,5 @@
 from time import time
+import torch
 from torch import nn, cuda, backends
 
 
@@ -43,31 +44,95 @@ class BlasterMultilayerPerceptron(nn.Module):
 class BlasterLSTM(nn.Module):
     def __init__(self, num_classes, model_name, bit_array_size, wandb_config):
         super(BlasterLSTM, self).__init__()
-        # /Users/mobara/Documents/unr/pg2023/projektDL/Blaster/.venv/lib/python3.11/site-packages/torch/nn/modules/rnn.py:82: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
         self.model_name = model_name
-        self.flatten = nn.Flatten()
+        
+        self.embedding = nn.Linear(bit_array_size, wandb_config["a_size"])
+        
         self.lstm1 = nn.LSTM(
-            bit_array_size,
             wandb_config["a_size"],
+            wandb_config["b_size"],
             batch_first=True,
             dropout=0.0,
         )
-        self.linear1 = nn.Linear(wandb_config["a_size"], wandb_config["b_size"])
-        self.lstm2 = nn.LSTM(
-            wandb_config["b_size"],
-            wandb_config["c_size"],
-            batch_first=True,
-            num_layers=2,
-            dropout=wandb_config["dropout"],
-        )
-        self.linear2 = nn.Linear(wandb_config["c_size"], num_classes)
+        # self.linear1 = nn.Linear(wandb_config["a_size"], wandb_config["b_size"])
+        # self.lstm2 = nn.LSTM(
+        #     wandb_config["b_size"],
+        #     wandb_config["c_size"],
+        #     batch_first=True,
+        #     num_layers=2,
+        #     dropout=wandb_config["dropout"],
+        #     bidirectional=True,
+        # )
+        # self.linear2 = nn.Linear(wandb_config["c_size"] * 2, num_classes)
+        self.linear2 = nn.Linear(wandb_config["b_size"], num_classes)
+        self.softmax = nn.Softmax(dim=1)
 
     def forward(self, x):
+        x = self.embedding(x)
         x, _ = self.lstm1(x)
-        x = self.linear1(x)
-        x, _ = self.lstm2(x)
+        # x = self.linear1(x)
+        # x, _ = self.lstm2(x)
+        # x, _ = self.lstm3(x)
+        # x = self.softmax(x)
+        # open("./debug/blaster_x1.txt", "w", encoding="utf-8").write(str(x))
         x = self.linear2(x[:, -1, :])
+        # open("./debug/blaster_x2.txt", "w", encoding="utf-8").write(str(x))
+        # x = self.softmax(x)
+        # open("./debug/blaster_x3.txt", "w", encoding="utf-8").write(str(x))
+        # exit(0)
         return x
 
+    def get_model_name(self):
+        return f"./models/BlasterLSTM_{self.model_name}_{int(time())}.pth"
+
+class ImprovedBlasterLSTM(nn.Module):
+    def __init__(self, model_name, num_classes, bit_array_size, wandb_config):
+        super(ImprovedBlasterLSTM, self).__init__()
+        self.model_name = model_name
+
+        self.embedding = nn.Linear(bit_array_size, wandb_config["a_size"])
+        
+        self.lstm1 = nn.LSTM(
+            wandb_config["a_size"],
+            wandb_config["a_size"],
+            batch_first=True,
+            dropout=wandb_config["dropout"],
+            num_layers=2,
+        )
+        
+        self.lstm2 = nn.LSTM(
+            wandb_config["a_size"],
+            wandb_config["b_size"],
+            batch_first=True,
+            dropout=wandb_config["dropout"],
+            bidirectional=True,
+            num_layers=2,
+        )
+
+        self.lstm3 = nn.LSTM(
+            wandb_config["b_size"] * 2,
+            wandb_config["c_size"],
+            batch_first=True,
+            dropout=wandb_config["dropout"],
+            bidirectional=True,
+            num_layers=2,
+        )
+
+        self.fc = nn.Linear(wandb_config["c_size"] * 2, num_classes)
+        self.softmax = nn.Softmax(dim=1)
+
+    def forward(self, x):
+        print(x.shape)
+        x = self.embedding(x)
+        
+        x, _ = self.lstm1(x)
+        x, _ = self.lstm2(x)
+        x, _ = self.lstm3(x)
+        
+        x = self.fc(x[:, -1, :])
+        x = self.softmax(x)
+        
+        return x
+    
     def get_model_name(self):
         return f"./models/BlasterLSTM_{self.model_name}_{int(time())}.pth"
