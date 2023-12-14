@@ -10,7 +10,7 @@ import wandb
 import time
 
 split_coeff = 0.8
-EPOCHS = 10
+EPOCHS = 11
 LEARNING_RATE = 0.0001
 MAX_SEQUENCE_LENGTH = 700  # 30_000
 BATCH_SIZE = 16
@@ -129,7 +129,7 @@ def test_model(model, test_loader, criterion, device):
             }
         )
     average_loss = running_loss / len(test_loader)
-    print(f"{average_loss =}")
+    print(f"{average_loss = }")
 
 def evaluate_model(model, data_loader, model_name, device):
     all_predictions = []
@@ -279,7 +279,7 @@ def start():
 
         classes = train_dataset.classes
         model_name = random_name()
-        # save_model_params(model_name, classes, sequence_length, num_classes, wandb.config)
+        save_model_params(model_name, classes, sequence_length, num_classes, wandb.config)
         model = BlasterLSTM(num_classes, model_name, 4, wandb.config).to(device)
         total_parameters_number = 0
         for name, param in model.named_parameters():
@@ -303,10 +303,10 @@ def start():
 
         print("Starting training...")
         train_model(model, train_loader, criterion, optimizer, device, num_epochs=EPOCHS)
-        # torch.save(model.state_dict(), model.get_model_name())
+        torch.save(model.state_dict(), model.get_model_name())
         print("Training finished")
         print("Starting testing...")
-        # test_model(model, test_loader, criterion, device)
+        test_model(model, test_loader, criterion, device)
         print("Testing finished")
         print("Evaluating model...")
         evaluate_model(model, test_loader, model_name, device)
