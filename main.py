@@ -9,12 +9,13 @@ import matplotlib.pyplot as plt
 import wandb
 import time
 
+VERSION = "1.0.0"
 split_coeff = 0.8
 EPOCHS = 11
 LEARNING_RATE = 0.0001
 MAX_SEQUENCE_LENGTH = 700  # 30_000
-BATCH_SIZE = 16
-MUTATION_IN_SEQUENCE_COEFFICIENT = 0.5
+BATCH_SIZE = 5
+MUTATION_IN_SEQUENCE_COEFFICIENT = 0.3
 MUTATIONS_PER_SEQUENCE = 5
 path = "prepared/prepared_1697562094237-short.json"
 
@@ -207,20 +208,17 @@ def save_model_params(model_name, classes, sequence_length, num_classes, wandb_c
     open(
             f"models/{model_name}.py",
             "w",
-        ).write(
+        ).write( # c_size = {wandb.config.c_size}
             f"""
 classes = {classes}
 sequence_length = {sequence_length}
 num_classes = {num_classes}
-dropout = {wandb.config.dropout}
-a_size = {wandb.config.a_size}
-b_size = {wandb.config.b_size}
-c_size = {wandb.config.c_size}
-batch_size = {wandb.config.batch_size}
-optimizer = "{wandb.config.optimizer}"
-learning_rate = {wandb.config.learning_rate}           		
-num_attention_heads = {wandb.config.num_attention_heads}
-    """
+dropout = {wandb_config.dropout}
+a_size = {wandb_config.a_size}
+b_size = {wandb_config.b_size}
+batch_size = {wandb_config.batch_size}
+optimizer = "{wandb_config.optimizer}"
+learning_rate = {wandb_config.learning_rate}"""
         )
 
 def main():
@@ -234,8 +232,6 @@ def main():
             "a_size": {"values": [128, 256]},
             "b_size": {"values": [16, 48, 128]},
             # "c_size": {"values": [128, 256, 512]},
-            "c_size": {"values": ['irrelevant']},
-            "num_attention_heads": {"values": [4, 8]},
         },
     }
     sweep_id = wandb.sweep(sweep_config)
@@ -244,9 +240,9 @@ def main():
 
 def start():
     try:
-        wandb.init(tensorboard=True, save_code=True)
+        wandb.init(tags=[f"{VERSION=}"])
         print(
-            f"Starting sweep with {wandb.config.dropout=}, {wandb.config.optimizer=}, {wandb.config.learning_rate=}, {wandb.config.batch_size=}, {wandb.config.a_size=}, {wandb.config.b_size=}, {wandb.config.c_size=}, {wandb.config.num_attention_heads=}"
+            f"Starting sweep with {wandb.config.dropout=}, {wandb.config.optimizer=}, {wandb.config.learning_rate=}, {wandb.config.batch_size=}, {wandb.config.a_size=}, {wandb.config.b_size=}"
         )
         print("loading data.sequence_array ..")
         database = load_data(
