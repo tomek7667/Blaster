@@ -227,20 +227,20 @@ def main():
         "parameters": {
             "dropout": {"values": [0.2]},
             "optimizer": {"values": ["adam"]},
-            "learning_rate": {"values": [LEARNING_RATE, LEARNING_RATE * 10]},
+            "learning_rate": {"values": [LEARNING_RATE, LEARNING_RATE * 10, int(LEARNING_RATE / 10)]},
             "batch_size": {"values": [BATCH_SIZE, BATCH_SIZE * 2, int(BATCH_SIZE / 2)]},
-            "a_size": {"values": [128, 256]},
+            "a_size": {"values": [64, 192, 308]},
             "b_size": {"values": [16, 48, 128]},
             # "c_size": {"values": [128, 256, 512]},
         },
     }
     sweep_id = wandb.sweep(sweep_config)
-    wandb.agent(sweep_id, function=start, count=15)
+    wandb.agent(sweep_id, function=start, count=99)
 
 
 def start():
     try:
-        wandb.init(project="Blaster-2", tags=[f"{VERSION=}"])
+        wandb.init(project="Blaster-test", tags=[f"{VERSION=}"])
         print(
             f"Starting sweep with {wandb.config.dropout=}, {wandb.config.optimizer=}, {wandb.config.learning_rate=}, {wandb.config.batch_size=}, {wandb.config.a_size=}, {wandb.config.b_size=}"
         )
