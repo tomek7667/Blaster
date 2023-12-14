@@ -240,7 +240,7 @@ def main():
 
 def start():
     try:
-        wandb.init(tags=[f"{VERSION=}"])
+        wandb.init(project="Blaster-2", tags=[f"{VERSION=}"])
         print(
             f"Starting sweep with {wandb.config.dropout=}, {wandb.config.optimizer=}, {wandb.config.learning_rate=}, {wandb.config.batch_size=}, {wandb.config.a_size=}, {wandb.config.b_size=}"
         )
