@@ -15,6 +15,10 @@ def get_device():
 
 
 class BlasterMultilayerPerceptron(nn.Module):
+    @staticmethod
+    def prefix():
+        return "BlasterMLPv1"
+
     def __init__(
         self, input_size, chunk_size, num_classes, model_name, bit_array_size=4
     ):
@@ -42,6 +46,10 @@ class BlasterMultilayerPerceptron(nn.Module):
 
 
 class BlasterLSTM(nn.Module):
+    @staticmethod
+    def prefix():
+        return "BlasterLSTMv2"
+    
     def __init__(self, num_classes, model_name, bit_array_size, wandb_config):
         super(BlasterLSTM, self).__init__()
         self.model_name = model_name
@@ -54,85 +62,57 @@ class BlasterLSTM(nn.Module):
             batch_first=True,
             dropout=0.0,
         )
-        # self.linear1 = nn.Linear(wandb_config["a_size"], wandb_config["b_size"])
-        # self.lstm2 = nn.LSTM(
-        #     wandb_config["b_size"],
-        #     wandb_config["c_size"],
-        #     batch_first=True,
-        #     num_layers=2,
-        #     dropout=wandb_config["dropout"],
-        #     bidirectional=True,
-        # )
-        # self.linear2 = nn.Linear(wandb_config["c_size"] * 2, num_classes)
-        self.linear2 = nn.Linear(wandb_config["b_size"], num_classes)
+        self.linear1 = nn.Linear(wandb_config["b_size"], num_classes)
         self.softmax = nn.Softmax(dim=1)
 
     def forward(self, x):
         x = self.embedding(x)
         x, _ = self.lstm1(x)
-        # x = self.linear1(x)
-        # x, _ = self.lstm2(x)
-        # x, _ = self.lstm3(x)
-        # x = self.softmax(x)
-        # open("./debug/blaster_x1.txt", "w", encoding="utf-8").write(str(x))
-        x = self.linear2(x[:, -1, :])
-        # open("./debug/blaster_x2.txt", "w", encoding="utf-8").write(str(x))
-        # x = self.softmax(x)
-        # open("./debug/blaster_x3.txt", "w", encoding="utf-8").write(str(x))
-        # exit(0)
+        x = self.linear1(x[:, -1, :])
         return x
 
     def get_model_name(self):
         return f"./models/BlasterLSTM_{self.model_name}_{int(time())}.pth"
 
-class ImprovedBlasterLSTM(nn.Module):
-    def __init__(self, model_name, num_classes, bit_array_size, wandb_config):
-        super(ImprovedBlasterLSTM, self).__init__()
+class BlasterLSTMv3(nn.Module):
+    @staticmethod
+    def prefix():
+        return "BlasterLSTMv3"
+    
+    def __init__(self, num_classes: int, model_name: str, bit_array_size: int, wandb_config, sequence_length: int):
+        super(BlasterLSTMv3, self).__init__()
         self.model_name = model_name
-
-        self.embedding = nn.Linear(bit_array_size, wandb_config["a_size"])
+        self.should_use_softmax = wandb_config["should_use_softmax"]
+        embedding_out_size = int((sequence_length * bit_array_size) / wandb_config["first_layer_chunk"])
+        self.embedding = nn.Linear(bit_array_size * sequence_length, embedding_out_size)
         
         self.lstm1 = nn.LSTM(
-            wandb_config["a_size"],
-            wandb_config["a_size"],
-            batch_first=True,
-            dropout=wandb_config["dropout"],
-            num_layers=2,
-        )
-        
-        self.lstm2 = nn.LSTM(
-            wandb_config["a_size"],
+            embedding_out_size,
             wandb_config["b_size"],
             batch_first=True,
+            num_layers=wandb_config["lstm_layers"],
+            bidirectional=wandb_config["is_bidirectional"],
             dropout=wandb_config["dropout"],
-            bidirectional=True,
-            num_layers=2,
         )
-
-        self.lstm3 = nn.LSTM(
-            wandb_config["b_size"] * 2,
-            wandb_config["c_size"],
-            batch_first=True,
-            dropout=wandb_config["dropout"],
-            bidirectional=True,
-            num_layers=2,
-        )
-
-        self.fc = nn.Linear(wandb_config["c_size"] * 2, num_classes)
+        linear1_input_size = wandb_config["b_size"] * 2 if wandb_config["is_bidirectional"] else wandb_config["b_size"]
+        
+        self.linear1 = nn.Linear(linear1_input_size, num_classes)
         self.softmax = nn.Softmax(dim=1)
 
     def forward(self, x):
-        print(x.shape)
+        # 1 sequence: [[0,0,0,1], [0,1,0,0], ... [ pseudo-one-hot ]]
+        # Flatten the sequence: [0,0,0,1,0,1,0,0, ... , pseudo-one-hot]
+        x = x.view(x.shape[0], -1)
         x = self.embedding(x)
-        
         x, _ = self.lstm1(x)
-        x, _ = self.lstm2(x)
-        x, _ = self.lstm3(x)
-        
-        x = self.fc(x[:, -1, :])
-        x = self.softmax(x)
-        
+        x = self.linear1(x)
+        if self.should_use_softmax:
+            x = self.softmax(x)
         return x
-    
+
     def get_model_name(self):
         return f"./models/BlasterLSTM_{self.model_name}_{int(time())}.pth"
+
+    def get_model_name(self):
+        return f"./models/BlasterLSTM_{self.model_name}_{int(time())}.pth"
+
